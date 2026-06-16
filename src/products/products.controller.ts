@@ -24,8 +24,7 @@ export class ProductsController {
 
   @Get()
   findAll(@Query() paginationDto: PaginationDto) {
-    // return this.productsService.findAll();
-    return paginationDto;
+    return this.productsService.findAll(paginationDto);
   }
 
   @Get(':id')

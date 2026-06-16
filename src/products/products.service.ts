@@ -1,9 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { PrismaClient } from '../generated/prisma';
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 import { PrismaService } from '../prisma.service';
+import { PaginationDto } from '../common';
 
 @Injectable()
 export class ProductsService extends PrismaClient {
@@ -22,12 +23,30 @@ export class ProductsService extends PrismaClient {
     return product;
   }
 
-  findAll() {
-    return this.product.findMany({});
+  async findAll(paginationDto: PaginationDto) {
+    const { page, limit } = paginationDto;
+    const totalPage = await this.product.count();
+    const lastPage = Math.ceil(totalPage / limit);
+    return {
+      data: this.product.findMany({
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      meta: {
+        lastPage,
+        total: totalPage,
+        page: page,
+      },
+    };
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} product`;
+  async findOne(id: number) {
+    const product = await this.prisma.product.findFirst({
+      where: { id },
+    });
+    if (!product) {
+      throw new NotFoundException(`Producto con el id #${id} no existe`);
+    }
   }
 
   update(id: number, updateProductDto: UpdateProductDto) {
