@@ -25,12 +25,15 @@ export class ProductsService extends PrismaClient {
 
   async findAll(paginationDto: PaginationDto) {
     const { page, limit } = paginationDto;
-    const totalPage = await this.product.count();
+    const totalPage = await this.product.count({ where: { available: true } });
     const lastPage = Math.ceil(totalPage / limit);
     return {
       data: this.product.findMany({
         skip: (page - 1) * limit,
         take: limit,
+        where: {
+          available: true
+        }
       }),
       meta: {
         lastPage,
@@ -42,18 +45,31 @@ export class ProductsService extends PrismaClient {
 
   async findOne(id: number) {
     const product = await this.prisma.product.findFirst({
-      where: { id },
+      where: { id, available: true },
     });
     if (!product) {
       throw new NotFoundException(`Producto con el id #${id} no existe`);
     }
   }
 
-  update(id: number, updateProductDto: UpdateProductDto) {
-    return `This action updates a #${id} product`;
+  async update(id: number, updateProductDto: UpdateProductDto) {
+    await this.findOne(id);
+    return this.product.update({
+      where: { id },
+      data: updateProductDto,
+    });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} product`;
+  async remove(id: number) {
+    await this.findOne(id);
+    // return this.product.delete({
+    //   where: { id },
+    // });
+    return await this.product.update({
+      where: { id },
+      data: {
+        available: false,
+      },
+    });
   }
 }
