@@ -32,8 +32,8 @@ export class ProductsService extends PrismaClient {
         skip: (page - 1) * limit,
         take: limit,
         where: {
-          available: true
-        }
+          available: true,
+        },
       }),
       meta: {
         lastPage,
@@ -53,10 +53,11 @@ export class ProductsService extends PrismaClient {
   }
 
   async update(id: number, updateProductDto: UpdateProductDto) {
+    const { id: __, ...data } = updateProductDto;
     await this.findOne(id);
     return this.product.update({
       where: { id },
-      data: updateProductDto,
+      data,
     });
   }
 
