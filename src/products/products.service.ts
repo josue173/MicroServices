@@ -28,7 +28,7 @@ export class ProductsService extends PrismaClient {
     const totalPage = await this.product.count({ where: { available: true } });
     const lastPage = Math.ceil(totalPage / limit);
     return {
-      data: this.product.findMany({
+      data: await this.product.findMany({
         skip: (page - 1) * limit,
         take: limit,
         where: {
@@ -36,9 +36,9 @@ export class ProductsService extends PrismaClient {
         },
       }),
       meta: {
-        lastPage,
         total: totalPage,
         page: page,
+        lastPage: lastPage,
       },
     };
   }
