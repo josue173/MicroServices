@@ -1,10 +1,11 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
-import { UpdateProductDto } from './dto/update-product.dto';
-import { PrismaClient } from '../generated/prisma';
-import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
-import { PrismaService } from '../prisma.service';
+import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { PaginationDto } from '../common';
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
+import { PrismaClient } from '../generated/prisma';
+import { PrismaService } from '../prisma.service';
+import { RpcException } from '@nestjs/microservices';
+import { UpdateProductDto } from './dto/update-product.dto';
 
 @Injectable()
 export class ProductsService extends PrismaClient {
@@ -28,7 +29,7 @@ export class ProductsService extends PrismaClient {
     const totalPage = await this.product.count({ where: { available: true } });
     const lastPage = Math.ceil(totalPage / limit);
     return {
-      data: this.product.findMany({
+      data: await this.product.findMany({
         skip: (page - 1) * limit,
         take: limit,
         where: {
@@ -36,9 +37,9 @@ export class ProductsService extends PrismaClient {
         },
       }),
       meta: {
-        lastPage,
         total: totalPage,
         page: page,
+        lastPage: lastPage,
       },
     };
   }
@@ -48,8 +49,12 @@ export class ProductsService extends PrismaClient {
       where: { id, available: true },
     });
     if (!product) {
-      throw new NotFoundException(`Producto con el id #${id} no existe`);
+      throw new RpcException({
+        msg: `Producto con el id #${id} no existe`,
+        status: HttpStatus.BAD_REQUEST,
+      });
     }
+    return product;
   }
 
   async update(id: number, updateProductDto: UpdateProductDto) {
